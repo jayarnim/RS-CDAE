@@ -1,2 +1,3 @@
-# RS-CDAE
-prectice CDAE, autoencoder based collaborative filtering for implicit feedback
+# CDAE
+
+- Wu, Y., DuBois, C., Zheng, A. X., & Ester, M. (2016, February). Collaborative denoising auto-encoders for top-n recommender systems. In Proceedings of the ninth ACM international conference on web search and data mining (pp. 153-162).
