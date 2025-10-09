@@ -15,12 +15,13 @@ class Module(nn.Module):
         PyTorch implementation of Collaborative Denoising AutoEncoder (CDAE)
 
         Args:
-            n_users (int): total number of users (U)
-            n_items (int): total number of items (I)
-            n_factors (int): latent dimension (K)
+            n_users (int): total number of users
+            n_items (int): total number of items
+            n_factors (int): latent dimension
             dropout (float): dropout rate (denoising)
         """
         super(Module, self).__init__()
+
         # attr dictionary for load
         self.init_args = locals().copy()
         del self.init_args["self"]
@@ -33,7 +34,7 @@ class Module(nn.Module):
         self.dropout = dropout
 
         # generate layers
-        self._init_layers()
+        self._set_up_components()
 
     def forward(
         self, 
@@ -41,8 +42,11 @@ class Module(nn.Module):
         x: torch.Tensor,
     ):
         """
-        user_idx: (B,)  - user indices (int)
-        x: (B, I)       - binary vector (user's interactions)
+        Training method
+
+        Args:
+            user_idx (torch.Tensor): user indices (B,)
+            x (torch.Tensor): user's interactions (B, I)
         """
         return self.score(user_idx, x)
 
@@ -52,8 +56,11 @@ class Module(nn.Module):
         x: torch.Tensor,
     ):
         """
-        user_idx: (B,)  - user indices (int)
-        x: (B, I)       - binary vector (user's interactions)
+        Evaluation method
+
+        Args:
+            user_idx (torch.Tensor): user indices (B,)
+            x (torch.Tensor): user's interactions (B, I)
         """
         with torch.no_grad():
             logit = self.score(user_idx, x)
@@ -69,21 +76,29 @@ class Module(nn.Module):
         # 2. Item encoding: (B,I) -> (B,K)
         h_hist = self.encoder(x_denoised)
         # 3. User embedding: (B,K)
-        h_user = self.embed_user(user_idx).squeeze(1)
+        h_user = self.user_embed(user_idx).squeeze(1)
         # 4. Combine: (B,K) + (B,K) -> (B,K)
         h = F.relu(h_user + h_hist)
         # 5. Reconstruction: (B,K) -> (B,I)
-        recon = self.decoder(h)
-        return recon
+        x_hat = self.decoder(h)
+        return x_hat
 
-    def _init_layers(self):
-        # === Layers ===
-        self.dropout = nn.Dropout(p=self.dropout)
-        self.embed_user = nn.Embedding(self.n_users, self.n_factors)
-        self.encoder = nn.Linear(self.n_items, self.n_factors)
-        self.decoder = nn.Linear(self.n_factors, self.n_items)
+    def _set_up_components(self):
+        self._create_layers()
 
-        # === Initialization ===
-        nn.init.xavier_uniform_(self.encoder.weight)
-        nn.init.xavier_uniform_(self.decoder.weight)
-        nn.init.normal_(self.embed_user.weight, std=0.01)
+    def _create_layers(self):
+        self.dropout = nn.Dropout(
+            p=self.dropout,
+        )
+        self.user_embed = nn.Embedding(
+            num_embeddings=self.n_users, 
+            embedding_dim=self.n_factors,
+        )
+        self.encoder = nn.Linear(
+            in_features=self.n_items, 
+            out_features=self.n_factors,
+        )
+        self.decoder = nn.Linear(
+            in_features=self.n_factors, 
+            out_features=self.n_items,
+        )
