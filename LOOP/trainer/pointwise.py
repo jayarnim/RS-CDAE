@@ -165,6 +165,12 @@ class PointwiseTrainer:
         )
         self.optimizer = optim.Adam(**kwargs)
 
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer=self.optimizer,
+            T_max=100,
+            eta_min=1e-4,
+        )
+
     def _init_scaler(self):
         kwargs = dict(
             device=self.device,
